@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: djangoapp
+spec:
+  replicas: {{ .Values.djangoapp.replicas }}
+  selector:
+    matchLabels:
+      appname: djangoapp
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        appname: djangoapp
+    spec:
+      serviceAccountName: "id-djangoapp-test-sa"
+      containers:
+        - image: {{ .Values.djangoapp.image }}
+          name: djangoapp
+          ports:
+            - containerPort: {{ .Values.djangoapp.containerPort }}
+          resources:
+            requests:
+              memory: "200Mi"
+              cpu: "100m"
+          env:
+            - name: POSTGRES_DB
+              value: pollsdb
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                    name: postgres-secrets
+                    key: postgres-password
+            - name: POSTGRES_USER
+              value: {{ .Values.db.username }}
+            - name: SECRET_KEY
+              value: mysecretkey
+            - name: DJANGO_ALLOWED_HOSTS
+              value: "{{ .Values.djangoapp.allowedHosts }}"
+            - name: POSTGRES_HOSTNAME
+              value: "db"
+          volumeMounts:
+            - mountPath: /code
+              name: web-claim0
+            - mountPath: /code/static
+              name: static-volume
+            - name: secrets-store
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+      imagePullSecrets:
+        - name: acr-creds
+      restartPolicy: Always
+      volumes:
+        - name: web-claim0
+          persistentVolumeClaim:
+            claimName: web-claim0
+        - name: static-volume
+          persistentVolumeClaim:
+            claimName: static-volume
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: azure-djangoapp-aks-dev-kv-workload-identity
+status: {}

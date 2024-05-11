@@ -1,0 +1,4 @@
+apiVersion: v2
+name: sherpany-chart
+description: deploy django app and postgres db
+version: 0.2.0

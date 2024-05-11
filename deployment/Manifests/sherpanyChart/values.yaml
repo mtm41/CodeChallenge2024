@@ -1,0 +1,15 @@
+djangoapp:
+  replicas: 2
+  image: manuacrtest.azurecr.io/kubernetesapp:0.5.0
+  containerPort: 8000
+  port: 80
+  #keyVaultName: manu-test-kv
+  managedIdentity: e991f729-2b35-47b7-bc50-ae6c685f7ed4
+  tenantId: 22e7cd59-61b9-42b8-8989-5e45205022a2
+  allowedHosts: 172.183.57.114
+
+db:
+  replicas: 1
+  username: postgres
+  port: 5432
+  containerPort: 5432

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    appname: db
+  name: db
+spec:
+  replicas: {{ .Values.db.replicas }}
+  selector:
+    matchLabels:
+      appname: db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        appname: db
+    spec:
+      serviceAccountName: "id-djangoapp-test-sa"
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: pollsdb
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                    name: postgres-secrets
+                    key: postgres-password
+            - name: POSTGRES_USER
+              value: {{ .Values.db.username }}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pollsdb
+          image: postgres
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            failureThreshold: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          name: db
+          ports:
+            - containerPort: {{ .Values.db.containerPort }}
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: db-data
+            - name: secrets-store
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: db-data
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: azure-djangoapp-aks-dev-kv-workload-identity
+status: {}
